@@ -33,8 +33,8 @@ def msg_iterator(M,query):
     if len(ids)>0:
         status,headers = M.fetch(",".join(ids),"(BODY.PEEK[HEADER.FIELDS (subject)])")
         assert status == "OK"
-        for i in xrange(0,len(headers),2):
-            yield (i,get_subjet(headers[i][1]))
+        for i in range(len(ids)):
+            yield (ids[i],get_subjet(headers[i*2][1]))
 
 # Buscar nuevos mensajes marcados como "Ruido"
 def find_noise(M):
