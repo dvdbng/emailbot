@@ -12,66 +12,54 @@ idle_event = Event()
 
 
 def callback(*args,**kwargs):
-    print args, kwargs
     idle_event.set()
 
-def extract_id(header):
-    m = re.search("<([^>]+)>",header)
-    assert m is not None
-    return m.groups(1)
+def remove_re(subject):
+    m = re.search("\s*(Re:(\s*))*",subject) # Note that this will allways match
+    return subject[m.end():]
 
-def parse_headers(headers):
-    id=None
-    reply=None
+def get_subjet(headers):
+    subject = None
+    subject_header = "Subject: "
     for header in headers.split("\r\n"):
-        if header.startswith("In-Reply-To: "):
-            reply = extract_id(header)
-        elif header.startswith("Message-ID: "):
-            id = extract_id(header)
-    return id,reply
+        if header.startswith(subject_header):
+            subject = remove_re(header[len(subject_header):])
+    assert subject is not None
+    return subject
 
+
+def msg_iterator(M,query):
+    status,res = M.search(None, query)
+    assert status == "OK"
+    assert len(res)>0
+    for i in res[0].split():
+        status,headers = M.fetch(i,"(BODY.PEEK[HEADER])")
+        assert status == "OK"
+        if len(headers)>0 and headers[0] is not None:
+            yield (i,get_subjet(headers[0][1]))
+        else:
+            print "Mensaje sin cabeceras", headers
 
 # Buscar nuevos mensajes marcados como "Ruido"
 def find_noise(M):
     changed = False
     M.select("AddRuido")
-    status,res = M.search(None, "ALL")
-    assert status == "OK"
-    assert len(res)>0
-    for i in res[0].split():
-        status,headers = M.fetch(i,"(BODY.PEEK[HEADER])")
-        assert status == "OK"
-        if len(headers)>0 and headers[0] is not None:
-            id,reply = parse_headers(headers[0][1])
-            if id is not None:
-                noise_mails.add(id)
-                noise_mails.add(reply)
-                print "Nueva conversacion ruidosa", id
-                changed = True
-                M.copy(i,"Ruido")
-                M.store(i,"+FLAGS","\\Deleted")
-        else:
-            print "Mensaje sin cabeceras WTF."
+
+    for i,subject in msg_iterator(M,"ALL"):
+        noise_mails.add(subject)
+        changed = True
+        print "Nueva conversacion ruidosa", subject
+        M.copy(i,"Ruido")
+        M.store(i,"+FLAGS","\\Deleted")
     M.expunge()
 
     M.select("INBOX")
     date = (datetime.date.today() - datetime.timedelta(5)).strftime("%d-%b-%Y")
-    status,res = M.search(None, "(SENTSINCE "+date+")")
-    assert status == "OK"
-    assert len(res)>0
-    for i in res[0].split():
-        status,headers = M.fetch(i,"(BODY.PEEK[HEADER])")
-        assert status == "OK"
-        if len(headers)>0 and headers[0] is not None:
-            id,reply = parse_headers(headers[0][1])
-            if reply is not None and reply in noise_mails:
-                print "Filtered by noise-filter:", id
-                noise_mails.add(id)
-                changed = True
-                M.copy(i,"Ruido")
-                M.store(i,"+FLAGS","\\Deleted")
-        else:
-            print "Mensaje sin cabeceras WTF."
+    for i,subject in msg_iterator(M,"(SENTSINCE "+date+")"):
+        if subject in noise_mails:
+            print "Filtered by noise-filter:", subject
+            M.copy(i,"Ruido")
+            M.store(i,"+FLAGS","\\Deleted")
     M.expunge()
 
     if changed:
