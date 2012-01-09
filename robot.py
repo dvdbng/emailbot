@@ -15,6 +15,7 @@ idle_event = Event()
 
 
 def callback(*args,**kwargs):
+    print "Callback", args, kwargs
     idle_event.set()
 
 def remove_re(subject):
