@@ -1,4 +1,6 @@
 import imaplib2, re, datetime
+from email.parser import Parser
+from email.header import decode_header
 import config
 from threading import Event
 from pyshutils import *
@@ -8,6 +10,7 @@ noise_mails = load("noise",set([]))
 M = imaplib2.IMAP4_SSL(config.HOST,config.PORT)
 M.login(config.USER,config.PASS)
 M.select("INBOX")
+parser = Parser()
 idle_event = Event()
 
 
@@ -16,29 +19,22 @@ def callback(*args,**kwargs):
 
 def remove_re(subject):
     m = re.search("\s*(Re:(\s*))*",subject) # Note that this will allways match
-    return subject[m.end():]
+    return re.sub("\s+"," ",subject[m.end():])
 
 def get_subjet(headers):
-    subject = None
-    subject_header = "Subject: "
-    for header in headers.split("\r\n"):
-        if header.startswith(subject_header):
-            subject = remove_re(header[len(subject_header):])
-    assert subject is not None
-    return subject
-
+    dh = decode_header(parser.parsestr(headers,headersonly=True)["Subject"])
+    return remove_re(''.join([ unicode(t[0], t[1] or "ASCII") for t in dh ]))
 
 def msg_iterator(M,query):
     status,res = M.search(None, query)
     assert status == "OK"
     assert len(res)>0
-    for i in res[0].split():
-        status,headers = M.fetch(i,"(BODY.PEEK[HEADER])")
+    ids = res[0].split()
+    if len(ids)>0:
+        status,headers = M.fetch(",".join(ids),"(BODY.PEEK[HEADER.FIELDS (subject)])")
         assert status == "OK"
-        if len(headers)>0 and headers[0] is not None:
-            yield (i,get_subjet(headers[0][1]))
-        else:
-            print "Mensaje sin cabeceras", headers
+        for i in xrange(0,len(headers),2):
+            yield (i,get_subjet(headers[i][1]))
 
 # Buscar nuevos mensajes marcados como "Ruido"
 def find_noise(M):
@@ -67,6 +63,7 @@ def find_noise(M):
         save("noise",noise_mails)
 
 while True:
+    print "finding noise..."
     find_noise(M)
     print "idling..."
     M.idle(callback=callback)
