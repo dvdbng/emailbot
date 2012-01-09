@@ -16,6 +16,7 @@ Note: "Re: " "Re: Re:" etc... is handled correctly.
 # Hackers wanted!
 
 If you like my robot, you might want to improve it, some ideas:
+
 * Make folder names configurable (Very easy)
 * Add command line parameters (Easy)
 * Convert the robot in a daemon and include a rc script (Easy)
