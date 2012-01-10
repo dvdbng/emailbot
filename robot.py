@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import imaplib2, re, datetime
 from email.parser import Parser
 from email.header import decode_header
@@ -37,27 +39,36 @@ def msg_iterator(M,query):
         for i in range(len(ids)):
             yield (ids[i],get_subjet(headers[i*2][1]))
 
+def delete_messages(msglist,M):
+    if len(msglist) > 0:
+        msgs = ",".join(msglist)
+        assert M.copy(msgs,"Ruido")[0] == "OK"
+        assert M.store(msgs,"+FLAGS","\\Deleted")[0] == "OK"
+        assert M.expunge()[0] == "OK"
+
 # Buscar nuevos mensajes marcados como "Ruido"
 def find_noise(M):
     changed = False
     M.select("AddRuido")
+    msgs = []
 
     for i,subject in msg_iterator(M,"ALL"):
         noise_mails.add(subject)
+        msgs.append(i)
         changed = True
         print "Nueva conversacion ruidosa", subject
-        M.copy(i,"Ruido")
-        M.store(i,"+FLAGS","\\Deleted")
-    M.expunge()
+
+    delete_messages(msgs,M)
+    msgs = []
 
     M.select("INBOX")
     date = (datetime.date.today() - datetime.timedelta(5)).strftime("%d-%b-%Y")
     for i,subject in msg_iterator(M,"(SENTSINCE "+date+")"):
         if subject in noise_mails:
             print "Filtered by noise-filter:", subject
-            M.copy(i,"Ruido")
-            M.store(i,"+FLAGS","\\Deleted")
-    M.expunge()
+            msgs.append(i)
+
+    delete_messages(msgs,M)
 
     if changed:
         print "saving..."
