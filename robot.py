@@ -5,19 +5,32 @@ from email.parser import Parser
 from email.header import decode_header
 import config
 from threading import Event
+from daemon import Daemon
 from pyshutils import *
 
-noise_mails = load("noise",set([]))
+noise_mails = load("/usr/lib/emailrobot/noise",set([]))
+last_connect = None
 
-M = imaplib2.IMAP4_SSL(config.HOST,config.PORT)
-M.login(config.USER,config.PASS)
-M.select("INBOX")
 parser = Parser()
 idle_event = Event()
 
+def connect():
+    global last_connect
+    # Don't connect twice in 5 minutes, since the server probably overloaded
+    assert last_connect is None or (datetime.datetime.now() - datetime.timedelta(0, 60*5)) > last_connect
+    last_connect = datetime.datetime.now()
+    M = imaplib2.IMAP4_SSL(config.HOST, config.PORT)
+    M.login(config.USER, config.PASS)
+    M.select("INBOX")
+    return M
 
-def callback(*args,**kwargs):
-    print "Callback", args, kwargs
+def callback(arg):
+    global aborted
+    res,arg,abr = arg
+    if abr is not None:
+        print "aborted", abr
+        aborted = True
+
     idle_event.set()
 
 def remove_re(subject):
@@ -72,13 +85,22 @@ def find_noise(M):
 
     if changed:
         print "saving..."
-        save("noise",noise_mails)
+        save("/usr/lib/emailrobot/noise",noise_mails)
 
-while True:
-    print "finding noise..."
-    find_noise(M)
-    print "idling..."
-    M.idle(callback=callback)
-    idle_event.wait()
-    idle_event.clear()
+class MailRobot(Daemon):
+    def run(self):
+        global M,aborted
+        M = connect()
+        while True:
+            print "finding noise..."
+            find_noise(M)
+            print "idling..."
+            M.idle(callback=callback)
+            idle_event.wait()
+            idle_event.clear()
+            if aborted: # Connection reset
+                aborted = False
+                M = connect()
+
+MailRobot("/var/run/emailrobot.pid",stdout="/var/log/emailrobot.log",stderr=None).start()
 
