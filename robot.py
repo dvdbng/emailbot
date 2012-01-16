@@ -10,6 +10,7 @@ from pyshutils import *
 
 noise_mails = load("/usr/lib/emailrobot/noise",set([]))
 last_connect = None
+aborted = False
 
 parser = Parser()
 idle_event = Event()
