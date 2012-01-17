@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import imaplib2, re, datetime
+import imaplib2, re, datetime, time
 from email.parser import Parser
 from email.header import decode_header
 import config
@@ -17,8 +17,10 @@ idle_event = Event()
 
 def connect():
     global last_connect
-    # Don't connect twice in 5 minutes, since the server probably overloaded
-    assert last_connect is None or (datetime.datetime.now() - datetime.timedelta(0, 60*5)) > last_connect
+    # Don't connect twice in 5 minutes, since the server probably overloaded, wait half hour before trying again
+    if last_connect is not None and (datetime.datetime.now() - datetime.timedelta(0, 60*5)) < last_connect:
+        print "Tried to connect twice in 5 minutes, going to sleep..."
+        time.sleep(60*30)
     last_connect = datetime.datetime.now()
     M = imaplib2.IMAP4_SSL(config.HOST, config.PORT)
     M.login(config.USER, config.PASS)
