@@ -90,20 +90,28 @@ def find_noise(M):
         print "saving..."
         save("/usr/lib/emailrobot/noise",noise_mails)
 
+def robot_loop():
+    global M,aborted
+    M = connect()
+    while True:
+        print "finding noise..."
+        find_noise(M)
+        print "idling..."
+        M.idle(callback=callback)
+        idle_event.wait()
+        idle_event.clear()
+        if aborted: # Connection reset
+            aborted = False
+            M = connect()
+
 class MailRobot(Daemon):
     def run(self):
-        global M,aborted
-        M = connect()
         while True:
-            print "finding noise..."
-            find_noise(M)
-            print "idling..."
-            M.idle(callback=callback)
-            idle_event.wait()
-            idle_event.clear()
-            if aborted: # Connection reset
-                aborted = False
-                M = connect()
+            try:
+                robot_loop()
+            except exception,ex:
+                import traceback
+                traceback.print_exc()
 
 MailRobot("/var/run/emailrobot.pid",stdout="/var/log/emailrobot.log",stderr=None).start()
 
