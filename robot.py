@@ -114,7 +114,7 @@ class MailRobot(Daemon):
         while True:
             try:
                 robot_loop()
-            except exception,ex:
+            except Exception,ex:
                 import traceback
                 traceback.print_exc()
 
