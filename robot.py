@@ -11,7 +11,7 @@ config_module = "config"
 if len(sys.argv) > 1:
     config_module = sys.argv[1]
 
-__import__(config_module)
+config = __import__(config_module)
 
 noise_mails = load("/usr/lib/emailrobot/noise-"+config_module,set([]))
 last_connect = None
