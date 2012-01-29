@@ -40,8 +40,8 @@ SCRIPTNAME=/etc/init.d/$NAME
 #
 do_start()
 {
-	start-stop-daemon --start --quiet --pidfile /var/run/emailrobot-config-pid --exec /usr/sbin/emailrobot  -- config || return 2
-	start-stop-daemon --start --quiet --pidfile /var/run/emailrobot-configbr-pid --exec /usr/sbin/emailrobot  -- configbr || return 2
+	start-stop-daemon --start --quiet --pidfile /var/run/emailrobot-config.pid --exec /usr/sbin/emailrobot  -- config || return 2
+	start-stop-daemon --start --quiet --pidfile /var/run/emailrobot-configbr.pid --exec /usr/sbin/emailrobot  -- configbr || return 2
 }
 
 #
@@ -49,9 +49,10 @@ do_start()
 #
 do_stop()
 {
-	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile /var/run/emailrobot-config-pid   --name emailrobot
-	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile /var/run/emailrobot-configbr-pid --name emailrobot
-	rm -f $PIDFILE
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile /var/run/emailrobot-config.pid   --name emailrobot
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile /var/run/emailrobot-configbr.pid --name emailrobot
+	rm -f /var/run/emailrobot-config.pid
+	rm -f /var/run/emailrobot-config-br.pid
     return 0
 }
 
