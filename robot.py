@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 
-import imaplib2, re, datetime, time
+import imaplib2, re, datetime, time, sys
 from email.parser import Parser
 from email.header import decode_header
-import config
 from threading import Event
 from daemon import Daemon
 from pyshutils import *
 
-noise_mails = load("/usr/lib/emailrobot/noise",set([]))
+config_module = "config"
+if len(sys.argv) > 1:
+    config_module = sys.argv[1]
+
+__import__(config_module)
+
+noise_mails = load("/usr/lib/emailrobot/noise-"+config_module,set([]))
 last_connect = None
 aborted = False
 
@@ -113,5 +118,5 @@ class MailRobot(Daemon):
                 import traceback
                 traceback.print_exc()
 
-MailRobot("/var/run/emailrobot.pid",stdout="/var/log/emailrobot.log",stderr=None).start()
+MailRobot("/var/run/emailrobot-%s.pid"%config_module, stdout="/var/log/emailrobot-%s.log"%config_module, stderr=None).start()
 
