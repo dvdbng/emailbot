@@ -52,7 +52,7 @@ do_stop()
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile /var/run/emailrobot-config.pid   --name emailrobot
 	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile /var/run/emailrobot-configbr.pid --name emailrobot
 	rm -f /var/run/emailrobot-config.pid
-	rm -f /var/run/emailrobot-config-br.pid
+	rm -f /var/run/emailrobot-configbr.pid
     return 0
 }
 
