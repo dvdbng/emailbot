@@ -2,8 +2,9 @@ from pyshutils import *
 import sys
 
 cmd = sys.argv[1]
+conf = sys.argv[2]
 
-noise_mails = load("/usr/lib/emailrobot/noise",set([]))
+noise_mails = load("/usr/lib/emailrobot/noise-" + conf,set([]))
 if cmd == "list":
     print "\n".join(noise_mails)
 elif cmd == "rm":
