@@ -93,7 +93,7 @@ def find_noise(M):
 
     if changed:
         print "saving..."
-        save("/usr/lib/emailrobot/noise",noise_mails)
+        save("/usr/lib/emailrobot/noise-" + config_module,noise_mails)
 
 def robot_loop():
     global M,aborted

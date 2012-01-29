@@ -9,4 +9,4 @@ if cmd == "list":
     print "\n".join(noise_mails)
 elif cmd == "rm":
     noise_mails.remove(sys.argv[2])
-    save("/usr/lib/emailrobot/noise",noise_mails)
+    save("/usr/lib/emailrobot/noise-" + conf,noise_mails)
